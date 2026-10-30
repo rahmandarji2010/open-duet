@@ -154,12 +154,13 @@ jobs:
           cases = list(ET.parse('../sandbox-results.xml').iter('testcase'))
           expected = {
               'test_real_linux_private_files_process_namespace_and_writable_workspace',
+              'test_rpc_close_kills_real_sandboxed_process_tree',
               'test_real_linux_network_box_blocks_host_loopback_and_gates_proxy',
           }
-          if len(cases) != 2 or {case.get('name') for case in cases} != expected:
-              raise SystemExit('Expected both real Linux enforcement tests.')
+          if len(cases) != 3 or {case.get('name') for case in cases} != expected:
+              raise SystemExit('Expected all three real Linux enforcement tests.')
           if any(case.find(tag) is not None for case in cases for tag in ('skipped', 'failure', 'error')):
-              raise SystemExit('Both real Linux enforcement tests must pass without skips.')
+              raise SystemExit('All three real Linux enforcement tests must pass without skips.')
           PY
       - name: Preserve enforcement report
         if: always()
