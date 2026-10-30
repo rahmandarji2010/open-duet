@@ -425,11 +425,12 @@ From `backend`, run `python -m app.core.turn_sandbox` with the server's normal
 configuration to check availability. Each enabled turn also runs the check. It
 verifies that a host canary is absent and the PID namespace differs from the
 backend; errors stop launch. It reports network access as **unrestricted**.
-The optional Linux test in `tests/core/test_turn_sandbox.py` additionally checks
-workspace writes; it is skipped on hosts without Linux/bubblewrap.
+The Linux sandbox tests in `tests/core/test_turn_sandbox.py` additionally check
+workspace writes and real StdioRpc child-process cleanup; they are skipped on
+hosts without Linux/bubblewrap.
 
 Backend CI has a separate **Linux sandbox enforcement** job on Ubuntu 22.04
-that installs bubblewrap and requires both real Linux tests to pass without
+that installs bubblewrap and requires all three real Linux tests to pass without
 skips. A missing runtime or refused namespace fails this job; it does not disable host security
 settings or fall back to an unboxed command. The job preserves its JUnit report.
 To run the same focused tests on your Linux server, from `backend`:
