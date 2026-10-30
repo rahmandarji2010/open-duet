@@ -438,7 +438,7 @@ To run the same focused tests on your Linux server, from `backend`:
 ```sh
 uv run pytest -v -rs \
   tests/core/test_turn_sandbox.py::test_real_linux_private_files_process_namespace_and_writable_workspace \
-  tests/core/test_turn_sandbox.py::test_rpc_close_kills_real_sandboxed_process_tree \\
+  tests/core/test_turn_sandbox.py::test_rpc_close_kills_real_sandboxed_process_tree \
   tests/core/test_turn_egress.py::test_real_linux_network_box_blocks_host_loopback_and_gates_proxy
 ```
 
