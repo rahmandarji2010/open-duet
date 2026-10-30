@@ -215,10 +215,10 @@ async def test_rpc_close_kills_real_sandboxed_process_tree(enabled, monkeypatch)
     pid_file = workspace / f'{marker}.pid'
 
     command = (
-        f'{shlex.quote(str(sleeper))} 600 &\\n'
-        'child_pid=$!\\n'
-        f'printf "%s\\n" "$child_pid" > {shlex.quote(str(pid_file))}\\n'
-        'wait "$child_pid"\\n'
+        f'{shlex.quote(str(sleeper))} 600 &\n'
+        'child_pid=$!\n'
+        f'printf "%s\n" "$child_pid" > {shlex.quote(str(pid_file))}\n'
+        'wait "$child_pid"\n'
     )
     rpc = await StdioRpc.spawn(
         ['/bin/sh', '-c', command],
