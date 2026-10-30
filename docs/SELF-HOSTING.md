@@ -440,10 +440,12 @@ uv run pytest -v -rs \
   tests/core/test_turn_egress.py::test_real_linux_network_box_blocks_host_loopback_and_gates_proxy
 ```
 
-Both tests must show **PASSED**; a skip provides no enforcement evidence. This
-checks filesystem/PID isolation, workspace writes, host-loopback denial,
-private-destination proxy refusal and gate-directory cleanup. It does not
-qualify provider sign-in/resume, approvals, stop/timeouts or orphan cleanup.
+All three tests must show **PASSED**; a skip provides no enforcement evidence. This
+checks filesystem/PID isolation, workspace writes, the real StdioRpc close path
+terminating a sandboxed child process, host-loopback denial, private-destination
+proxy refusal and gate-directory cleanup. It does not qualify provider
+sign-in/resume, approval delivery, turn-deadline behavior or orphan cleanup
+after a hard backend kill.
 
 Stage C alone still allows loopback, the server API and metadata over the
 shared network. The separate stage D preview below restricts turn networking.
@@ -475,6 +477,6 @@ The preflight additionally checks that the network namespace differs from
 the host. Missing prerequisites, gate or bridge failures stop launch without
 an unboxed retry. Supervisor tests exercise stdio and temporary socket cleanup;
 policy tests cover mixed DNS answers, numeric-address pinning and HTTP/TLS
-transport. Actual namespace enforcement and engine proxy compatibility,
-sign-in/resume, approval delivery, stop/timeouts and orphan cleanup still need
+transport. Engine proxy compatibility, sign-in/resume, approval delivery,
+turn-deadline behavior and orphan cleanup after a hard backend kill still need
 qualification on real Linux. Keep the preview off until that host is qualified.
