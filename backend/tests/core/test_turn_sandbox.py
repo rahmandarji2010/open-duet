@@ -1,6 +1,7 @@
 """Mount planning, refusal and optional real-Linux namespace qualification."""
 import asyncio
 import os
+import shlex
 from pathlib import Path
 import shutil
 import subprocess
@@ -187,3 +188,76 @@ def test_resolver_symlink_rejects_unrelated_run_paths_or_nonfiles(monkeypatch, f
         box._base()
     with pytest.raises(box.SandboxUnavailable):
         box._check_grant(Path(target))
+
+
+@pytest.mark.skipif(not sys.platform.startswith('linux') or not shutil.which('bwrap'),
+                    reason='requires real Linux bubblewrap')
+@pytest.mark.asyncio
+async def test_rpc_close_kills_real_sandboxed_process_tree(enabled, monkeypatch):
+    """The normal StdioRpc close path must reap a sandboxed engine and its child.
+
+    This runs the real Bubblewrap command, not a mocked argv plan. The child
+    has a unique argv[0], allowing the host process table to prove that it
+    existed outside the private PID namespace and disappeared after close.
+    """
+    from app.core import engine_processes
+    from app.services.stdio_rpc import StdioRpc
+
+    monkeypatch.setattr(settings, 'TURN_SANDBOX_NETWORK_ENABLED', False)
+    workspace = enabled / 'workspace'
+    workspace.mkdir()
+
+    marker = f'od-sandbox-child-{os.getpid()}-{id(workspace):x}'
+    sleeper = workspace / marker
+    sleep_executable = shutil.which('sleep')
+    assert sleep_executable is not None
+    sleeper.symlink_to(sleep_executable)
+    pid_file = workspace / f'{marker}.pid'
+
+    command = (
+        f'{shlex.quote(str(sleeper))} 600 &\\n'
+        'child_pid=$!\\n'
+        f'printf "%s\\n" "$child_pid" > {shlex.quote(str(pid_file))}\\n'
+        'wait "$child_pid"\\n'
+    )
+    rpc = await StdioRpc.spawn(
+        ['/bin/sh', '-c', command],
+        cwd=str(workspace),
+        max_bytes=1024,
+        env={'PATH': '/usr/bin:/bin'},
+        sandbox=True,
+    )
+
+    def live_child_processes():
+        table = engine_processes.process_table()
+        assert table is not None, 'the Linux process table must be readable'
+        return [
+            proc for proc in table.values()
+            if not proc.zombie and proc.args.startswith(f'{sleeper} ')
+        ]
+
+    try:
+        deadline = asyncio.get_running_loop().time() + 10
+        while asyncio.get_running_loop().time() < deadline:
+            child = await asyncio.to_thread(live_child_processes)
+            if pid_file.exists() and child:
+                break
+            await asyncio.sleep(0.05)
+
+        assert pid_file.exists(), 'the sandboxed shell did not start its child'
+        assert child, 'the host could not observe the sandboxed child process'
+    finally:
+        await rpc.close()
+
+    assert rpc.proc.returncode is not None, 'close() did not reap the sandbox launcher'
+
+    deadline = asyncio.get_running_loop().time() + 10
+    remaining = await asyncio.to_thread(live_child_processes)
+    while remaining and asyncio.get_running_loop().time() < deadline:
+        await asyncio.sleep(0.05)
+        remaining = await asyncio.to_thread(live_child_processes)
+
+    assert not remaining, (
+        'StdioRpc.close() left sandboxed child processes running: '
+        + ', '.join(f'pid={proc.pid} args={proc.args}' for proc in remaining)
+    )
