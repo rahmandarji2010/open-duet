@@ -479,6 +479,6 @@ The preflight additionally checks that the network namespace differs from
 the host. Missing prerequisites, gate or bridge failures stop launch without
 an unboxed retry. Supervisor tests exercise stdio and temporary socket cleanup;
 policy tests cover mixed DNS answers, numeric-address pinning and HTTP/TLS
-transport. Engine proxy compatibility, sign-in/resume, approval delivery,
+Engine proxy compatibility, sign-in/resume, approval delivery,
 turn-deadline behavior and orphan cleanup after a hard backend kill still need
 qualification on real Linux. Keep the preview off until that host is qualified.
